@@ -6,7 +6,7 @@
 int main(int argc, char* argv[]) {
     try {
         if (argc != 3) {
-            std::cerr << "Usage: async_tcp_echo_server <port> <path/to/file\n";
+            std::cerr << "Usage: stx-server <port> <path/to/file\n";
             return 1;
         }
 

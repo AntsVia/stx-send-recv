@@ -3,6 +3,7 @@
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
+#incldue <iostream>
 #include <string>
 
 void Session::Start() { DoReadFileData(); }

@@ -3,7 +3,6 @@
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
-#include <iostream>
 #include <string>
 
 class Session : public std::enable_shared_from_this<Session> {
@@ -12,6 +11,7 @@ class Session : public std::enable_shared_from_this<Session> {
     using NetworkSize = uint64_t;
 
     Session(TcpSocket::socket rtSocket) : mtSocket(std::move(rtSocket)) {}
+    ~Session() = default;
 
     void Start();
 
@@ -36,6 +36,7 @@ class Server {
 
     Server(boost::asio::io_context& rtIoContext, short rdPort,
            std::string const& rtWorkDirectory);
+    ~Server() = default;
 
    private:
     TcpSocket::acceptor mtAcceptor;

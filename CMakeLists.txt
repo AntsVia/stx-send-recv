@@ -11,3 +11,4 @@ option(BUILD_CLIENT "Build the client program" ON)
 option(BUILD_SERVER "Build the server program" ON)
 
 add_subdirectory(src)
+add_subdirectory(lib)

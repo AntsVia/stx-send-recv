@@ -8,7 +8,7 @@ using boost::asio::ip::tcp;
 int main(int argc, char* argv[]) {
     try {
         if (argc != 4) {
-            std::cerr << "Usage: client <address> <port> <filePath>\n";
+            std::cerr << "Usage: stx-client <address> <port> <filePath>\n";
             return 1;
         }
 

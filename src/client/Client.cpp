@@ -1,4 +1,6 @@
 #include "Client.hpp"
+#include "ClientMessageHandler.hpp"
+#include "MessageHandlerI.hpp"
 
 #include <array>
 #include <boost/asio.hpp>
@@ -25,7 +27,41 @@ void FileTransferClient::DoConnect(
         mtSocket, endpoints,
         [this](boost::system::error_code ec, TcpSocket::endpoint) {
             if (!ec) {
+                SetState(tools::make_unique<InitSessionState<FileTransferClient>>());
                 OpenFile(mtFilePath);
+            }
+        });
+}
+
+void FileTransferClient::SetState(std::unique_ptr<SessionState<FileTransferClient>> rpNewState) {
+    mpState = std::move(rpNewState);
+    mpState->Start(*this); // kick off state logic
+}
+
+void FileTransferClient::DoRead() {
+    boost::asio::async_read_until(mtSocket, mtDataInput, "\n",
+                                [this] (boost::system::error_code ec, std::size_t /*length*/) {
+                                if (!ec) {
+                                    /* deserialize data */
+                                    std::istream buf(&mtDataInput);
+                                    std::string input;
+                                    buf >> input;
+                                    if (this->mpState)
+                                        this->mpState->OnRead(*this, input);
+                                } else {
+                                    std::cout << "Read error: " << ec.message() << "\n";
+                                    SetState(tools::make_unique<FinishSessionState<FileTransferClient>>());
+                                }
+                                });
+}
+
+void FileTransferClient::DoWrite(const std::string& rpData) {
+    boost::asio::async_write(
+        mtSocket,
+        boost::asio::buffer(&rpData, sizeof(rpData)),
+        [this](boost::system::error_code ec, std::size_t /*length*/) {
+            if (ec) {
+                return;
             }
         });
 }
