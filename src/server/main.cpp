@@ -6,15 +6,13 @@
 int main(int argc, char* argv[]) {
     try {
         if (argc != 3) {
-            std::cerr << "Usage: stx-server <port> <path/to/file\n";
+            std::cerr << "Usage: stx-server <port> <path/to/file>\n";
             return 1;
         }
 
-        boost::asio::io_context io_context;
+        Server s(std::atoi(argv[1]), 8, argv[2]);
 
-        Server s(io_context, std::atoi(argv[1]), argv[2]);
-
-        io_context.run();
+        s.Run();
     } catch (std::exception& e) {
         std::cerr << "Exception: " << e.what() << "\n";
     }

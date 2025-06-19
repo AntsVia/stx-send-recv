@@ -1,16 +1,134 @@
 #pragma once
 
 #include "MessageHandlerI.hpp"
+#include <string>
+#include <iostream>
 
 template<typename Context>
-struct InitSessionState;
+struct InitSessionState : public SessionState<Context> {
+   void Start(Context& ctx) override;
+   void OnRead(Context& ctx, const std::string& data) override;
+};
+
 template<typename Context>
-struct AuthSessionState;
+struct AuthSessionState : public SessionState<Context> {
+   void Start(Context& ctx) override;
+   void OnRead(Context& ctx, const std::string& data) override;
+};
+
 template<typename Context>
-struct KeyExchangeSessionState;
+struct AuthAckSessionState : public SessionState<Context> {
+   void Start(Context& ctx) override;
+   void OnRead(Context& ctx, const std::string& data) override;
+};
+
 template<typename Context>
-struct DataSendSessionState;
+struct KeyExchangeSessionState : public SessionState<Context> {
+   void Start(Context& ctx) override;
+   void OnRead(Context& ctx, const std::string& data) override;
+};
+
 template<typename Context>
-struct ReconnectSessionState;
+struct DataReceiveSessionState : public SessionState<Context> {
+   void Start(Context& ctx) override;
+   void OnRead(Context& ctx, const std::string& data) override;
+};
+
 template<typename Context>
-struct FinishSessionState;
+struct FinishSessionState : public SessionState<Context> {
+   void Start(Context& ctx) override;
+   void OnRead(Context& ctx, const std::string& data) override;
+};
+
+template <typename Context>
+void InitSessionState<Context>::Start(Context& ctx)  {
+   ctx.DoRead();
+}
+
+template <typename Context>
+void InitSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
+   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   if (data.find("HELLO") != std::string::npos) {
+      ctx.SetState(tools::make_unique<AuthSessionState<Context>>());
+   } else {
+      ctx.SetState(tools::make_unique<FinishSessionState<Context>>());
+   }
+}
+
+template<typename Context>
+void AuthSessionState<Context>::Start(Context& ctx)  {
+   ctx.DoWrite("AUTH_REQUEST\r\n");
+   ctx.DoRead();
+}
+
+template<typename Context>
+void AuthSessionState<Context>::OnRead(Context& ctx, const std::string& data)  { 
+   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   if (data.find("AUTH") != std::string::npos) {
+      ctx.SetState(tools::make_unique<AuthAckSessionState<Context>>());
+   } else {
+      ctx.SetState(tools::make_unique<FinishSessionState<Context>>());
+   }
+}
+
+template<typename Context>
+void AuthAckSessionState<Context>::Start(Context& ctx)  {
+   ctx.DoWrite("AUTH_ACK\r\n");
+   ctx.DoRead();
+}
+
+template<typename Context>
+void AuthAckSessionState<Context>::OnRead(Context& ctx, const std::string& data)  { 
+   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   if (data.find("KEY_EXCHANGE") != std::string::npos) {
+      ctx.SetState(tools::make_unique<KeyExchangeSessionState<Context>>());
+   } else {
+      ctx.SetState(tools::make_unique<FinishSessionState<Context>>());
+   }
+}
+
+template<typename Context>
+void KeyExchangeSessionState<Context>::Start(Context& ctx)  {
+   ctx.DoWrite("KEY_EXCHANGE\r\n");
+   ctx.DoRead();
+}
+
+template<typename Context>
+void KeyExchangeSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
+   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   if (data.find("DATA") != std::string::npos) {
+      ctx.SetState(tools::make_unique<DataReceiveSessionState<Context>>());
+   } else {
+      ctx.SetState(tools::make_unique<FinishSessionState<Context>>());
+   }
+}
+
+template<typename Context>
+void DataReceiveSessionState<Context>::Start(Context& ctx)  {
+   ctx.DoWrite("DATA\r\n");
+   ctx.DoRead();
+}
+
+template<typename Context>
+void DataReceiveSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
+   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   if (data.find("DATA") != std::string::npos) {
+      ctx.SetState(tools::make_unique<DataReceiveSessionState<Context>>());
+   // } else if (/*failed process data */) {
+   //    ctx.SetState(tools::make_unique<ReconnectSessionState<Context>>());
+   } else {
+      ctx.SetState(tools::make_unique<FinishSessionState<Context>>());
+   }
+}
+
+template<typename Context>
+void FinishSessionState<Context>::Start(Context& ctx)  {
+   ctx.DoWrite("FINISH\r\n");
+   ctx.DoRead();
+}
+
+template<typename Context>
+void FinishSessionState<Context>::OnRead(Context& ctx, const std::string& data)  { 
+   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   ctx.Close();
+}
