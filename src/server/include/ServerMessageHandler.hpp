@@ -47,7 +47,7 @@ void InitSessionState<Context>::Start(Context& ctx)  {
 
 template <typename Context>
 void InitSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
-   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   std::cout << __LINE__ << " OnRead: " << data << "";
    if (data.find("HELLO") != std::string::npos) {
       ctx.SetState(tools::make_unique<AuthSessionState<Context>>());
    } else {
@@ -57,13 +57,12 @@ void InitSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
 
 template<typename Context>
 void AuthSessionState<Context>::Start(Context& ctx)  {
-   ctx.DoWrite("AUTH_REQUEST\r\n");
-   ctx.DoRead();
+   ctx.DoWrite("AUTH_REQUEST");
 }
 
 template<typename Context>
 void AuthSessionState<Context>::OnRead(Context& ctx, const std::string& data)  { 
-   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   std::cout << __LINE__ << " OnRead: " << data << "";
    if (data.find("AUTH") != std::string::npos) {
       ctx.SetState(tools::make_unique<AuthAckSessionState<Context>>());
    } else {
@@ -73,13 +72,12 @@ void AuthSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
 
 template<typename Context>
 void AuthAckSessionState<Context>::Start(Context& ctx)  {
-   ctx.DoWrite("AUTH_ACK\r\n");
-   ctx.DoRead();
+   ctx.DoWrite("AUTH_ACK");
 }
 
 template<typename Context>
 void AuthAckSessionState<Context>::OnRead(Context& ctx, const std::string& data)  { 
-   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   std::cout << __LINE__ << " OnRead: " << data << "";
    if (data.find("KEY_EXCHANGE") != std::string::npos) {
       ctx.SetState(tools::make_unique<KeyExchangeSessionState<Context>>());
    } else {
@@ -89,13 +87,12 @@ void AuthAckSessionState<Context>::OnRead(Context& ctx, const std::string& data)
 
 template<typename Context>
 void KeyExchangeSessionState<Context>::Start(Context& ctx)  {
-   ctx.DoWrite("KEY_EXCHANGE\r\n");
-   ctx.DoRead();
+   ctx.DoWrite("KEY_EXCHANGE");
 }
 
 template<typename Context>
 void KeyExchangeSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
-   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   std::cout << __LINE__ << " OnRead: " << data << "";
    if (data.find("DATA") != std::string::npos) {
       ctx.SetState(tools::make_unique<DataReceiveSessionState<Context>>());
    } else {
@@ -105,13 +102,12 @@ void KeyExchangeSessionState<Context>::OnRead(Context& ctx, const std::string& d
 
 template<typename Context>
 void DataReceiveSessionState<Context>::Start(Context& ctx)  {
-   ctx.DoWrite("DATA\r\n");
-   ctx.DoRead();
+   ctx.DoWrite("DATA");
 }
 
 template<typename Context>
 void DataReceiveSessionState<Context>::OnRead(Context& ctx, const std::string& data)  {
-   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   std::cout << __LINE__ << " OnRead: " << data << "";
    if (data.find("DATA") != std::string::npos) {
       ctx.SetState(tools::make_unique<DataReceiveSessionState<Context>>());
    // } else if (/*failed process data */) {
@@ -123,12 +119,11 @@ void DataReceiveSessionState<Context>::OnRead(Context& ctx, const std::string& d
 
 template<typename Context>
 void FinishSessionState<Context>::Start(Context& ctx)  {
-   ctx.DoWrite("FINISH\r\n");
    ctx.DoRead();
 }
 
 template<typename Context>
 void FinishSessionState<Context>::OnRead(Context& ctx, const std::string& data)  { 
-   std::cout << __LINE__ << " OnRead: " << data << "\n";
+   std::cout << __LINE__ << " OnRead: " << data << "";
    ctx.Close();
 }

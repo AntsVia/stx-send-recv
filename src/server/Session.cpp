@@ -34,34 +34,63 @@ void Session::DoReadFileData() {
 
 void Session::DoRead() {
     auto self(shared_from_this());
-    boost::asio::async_read_until(mtSocket, mtDataInput, "\r\n\r\n",
-                                  [this, self] (boost::system::error_code ec, std::size_t /*length*/) {
-                                  if (!ec) {
-                                      /* deserialize data */
-                                      std::istream buf(&mtDataInput);
-                                      std::string input;
-                                      buf >> input;
-                                      std::cout << "Read: " << input << "\n";
-                                      if (this->mpState)
-                                          this->mpState->OnRead(*this, input);
-                                  } else {
-                                  std::cout << "Read error: " << ec.message() << "\n";
-                                  SetState(tools::make_unique<FinishSessionState<Session>>());
-                                  }
-                                  });
+    boost::asio::async_read(mtSocket,
+               boost::asio::buffer(&mdExpectedSize, sizeof(mdExpectedSize)),
+               boost::asio::bind_executor(mtStrand,
+                                [this, self] (boost::system::error_code ec, std::size_t /*length*/) {
+                                std::cout << "Message size: " << mdExpectedSize <<"\n";
+                                if (!ec && MAX_LENGTH > mdExpectedSize) {
+                                    std::cout << "Reading message\n";
+                                    DoReadMessage();
+                                } else {
+                                    std::cout << "Read error: " << ec.message() << "\n";
+                                }
+                                }));
 }
 
-void Session::DoWrite(const std::string& rpData) {
+void Session::DoReadMessage() {
     auto self(shared_from_this());
-    std::cout << "Write: " << rpData << "\n";
+    boost::asio::async_read(mtSocket,
+               boost::asio::buffer(maData, mdExpectedSize),
+               boost::asio::bind_executor(mtStrand,
+               [this, self](boost::system::error_code ec, std::size_t length) {
+                                if (!ec || length == mdExpectedSize) {
+                                    /* deserialize data */
+                                    for(unsigned i = 0; i < mdExpectedSize; i++) {
+                                          std::cout << maData[i];
+                                          }
+                                          std::cout << "\n";
+                                    std::string buf(maData, length);
+                                    std::cout << "Read: " << buf << "\n";
+                                    if (this->mpState) {
+                                        std::cout << "Start OnRead\n";
+                                        this->mpState->OnRead(*this, buf);
+                                          }
+                                } else {
+                                    std::cout << "Read len: " << length << "\n";
+                                    std::cout << "Read error: " << ec.message() << "\n";
+                                }
+               }));
+}
+
+void Session::DoWrite(const std::string& raData) {
+    auto self(shared_from_this());
+    uint32_t uMsgSize = raData.size();
+    std::cout << "Write: " << raData << "size: " << uMsgSize << "\n";
+    std::vector<boost::asio::const_buffer> aBufs {
+        boost::asio::buffer(&uMsgSize, sizeof(uMsgSize)),
+        boost::asio::buffer(raData),
+    };
     boost::asio::async_write(
         mtSocket,
-        boost::asio::buffer(&rpData, sizeof(rpData)),
+        aBufs,
+        boost::asio::bind_executor(mtStrand,
         [this, self](boost::system::error_code ec, std::size_t /*length*/) {
             if (ec) {
                 return;
             }
-        });
+            DoRead();
+        }));
 }
 
 void Session::Close() {

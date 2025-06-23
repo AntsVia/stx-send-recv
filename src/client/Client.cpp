@@ -14,11 +14,11 @@
 using namespace boost::filesystem;
 
 FileTransferClient::FileTransferClient(
-    boost::asio::io_context& io_context,
-    const TcpSocket::resolver::results_type& endpoints,
+    boost::asio::io_context& rtIoContext,
+    const TcpSocket::resolver::results_type& reEndpoints,
     std::string const& rsPath)
-    : mtSocket(io_context), mtInputBuffer(BUF_LEN), mtFilePath(rsPath) {
-    DoConnect(endpoints);
+    : mtSocket(boost::asio::make_strand(rtIoContext)), mtInputBuffer(BUF_LEN), mtFilePath(rsPath), mtStrand(boost::asio::make_strand(rtIoContext)) {
+    DoConnect(reEndpoints);
 }
 
 void FileTransferClient::DoConnect(
@@ -28,7 +28,7 @@ void FileTransferClient::DoConnect(
         [this](boost::system::error_code ec, TcpSocket::endpoint) {
             if (!ec) {
                 SetState(tools::make_unique<InitSessionState<FileTransferClient>>());
-                OpenFile(mtFilePath);
+                // OpenFile(mtFilePath);
             }
         });
 }
@@ -39,31 +39,55 @@ void FileTransferClient::SetState(std::unique_ptr<SessionState<FileTransferClien
 }
 
 void FileTransferClient::DoRead() {
-    boost::asio::async_read_until(mtSocket, mtDataInput, "\n",
+    boost::asio::async_read(mtSocket,
+               boost::asio::buffer(&mdExpectedSize, sizeof(mdExpectedSize)),
+                            boost::asio::bind_executor(mtStrand,
                                 [this] (boost::system::error_code ec, std::size_t /*length*/) {
-                                if (!ec) {
+                                std::cout << "Message size: " << mdExpectedSize <<"\n";
+                                if (!ec && BUF_LEN > mdExpectedSize) {
+                                    std::cout << "Reading message\n";
+                                    DoReadMessage();
+                                } else {
+                                    std::cout << "Read error: " << ec.message() << "\n";
+                                }
+                                }));
+}
+
+void FileTransferClient::DoReadMessage() {
+    boost::asio::async_read(mtSocket,
+               boost::asio::buffer(maData.data(), mdExpectedSize),
+                            boost::asio::bind_executor(mtStrand,
+               [this](boost::system::error_code ec, std::size_t length) {
+                                if (!ec || length == mdExpectedSize) {
                                     /* deserialize data */
-                                    std::istream buf(&mtDataInput);
-                                    std::string input;
-                                    buf >> input;
+                                    std::string input(maData.data(), length);
+                                    std::cout << "Read: " << input << "\n";
                                     if (this->mpState)
                                         this->mpState->OnRead(*this, input);
                                 } else {
+                                    std::cout << "Read len: " << length << "\n";
                                     std::cout << "Read error: " << ec.message() << "\n";
-                                    SetState(tools::make_unique<FinishSessionState<FileTransferClient>>());
                                 }
-                                });
+               }));
 }
 
-void FileTransferClient::DoWrite(const std::string& rpData) {
+void FileTransferClient::DoWrite(const std::string& raData) {
+    uint32_t uMsgSize = raData.size();
+    std::cout << "Write: " << raData << "size: " << uMsgSize << "\n";
+    std::vector<boost::asio::const_buffer> aBufs {
+        boost::asio::buffer(&uMsgSize, sizeof(uMsgSize)),
+        boost::asio::buffer(raData),
+    };
     boost::asio::async_write(
         mtSocket,
-        boost::asio::buffer(&rpData, sizeof(rpData)),
+        aBufs,
+        boost::asio::bind_executor(mtStrand,
         [this](boost::system::error_code ec, std::size_t /*length*/) {
             if (ec) {
                 return;
             }
-        });
+            DoRead();
+        }));
 }
 
 void FileTransferClient::OpenFile(std::string const& rsPath) {
@@ -78,7 +102,7 @@ void FileTransferClient::OpenFile(std::string const& rsPath) {
     NetworkSize fileNameSize = file_path.filename().string().size();
 
     std::vector<boost::asio::const_buffer> vPayload{
-        boost::asio::buffer(&fileNameSize, sizeof(fileSize)),
+        boost::asio::buffer(&fileNameSize, sizeof(fileNameSize)),
         boost::asio::buffer(file_path.filename().string()),
         boost::asio::buffer(&fileSize, sizeof(fileSize)),
     };
