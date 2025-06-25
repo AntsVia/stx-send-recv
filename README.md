@@ -1,5 +1,5 @@
-#stx - send - recv
-##Build
+# stx - send - recv
+## Build
 
 ```bash
 chmod + x build.sh
