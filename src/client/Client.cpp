@@ -39,7 +39,7 @@ void FileTransferClient::DoConnect(
 
 void FileTransferClient::SetState(std::unique_ptr<SessionState<FileTransferClient>> rpNewState) {
     mpState = std::move(rpNewState);
-    mpState->Start(*this); // kick off state logic
+    mpState->Start(*this);
 }
 
 void FileTransferClient::DoRead() {
@@ -156,7 +156,6 @@ void FileTransferClient::SendPacket() {
 }
 
 void FileTransferClient::Close() {
-    // Cancel all outstanding asynchronous operations.
     mtSourceFile.close();
     mtSocket.close();
 }

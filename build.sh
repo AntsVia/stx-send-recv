@@ -14,7 +14,6 @@ CMAKE_CACHE_DIR="${ARTIFACTS_DIR}/cmake_cache"
 
 mkdir -p "$PRODUCTS_DIR" "$CMAKE_CACHE_DIR"
 
-# Default: build all
 BUILD_CLIENT=OFF
 BUILD_SERVER=OFF
 
@@ -33,7 +32,6 @@ case "$1" in
     ;;
 esac
 
-# Decide project name based on build type
 if [[ "$BUILD_CLIENT" == "ON" && "$BUILD_SERVER" == "OFF" ]]; then
   PROJECT_NAME="stx-client"
 # elif [[ "$BUILD_CLIENT" == "OFF" && "$BUILD_SERVER" == "ON" ]]; then
