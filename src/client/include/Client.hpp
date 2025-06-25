@@ -14,10 +14,15 @@ class FileTransferClient {
     using TcpSocket = boost::asio::ip::tcp;
     using NetworkSize = uint32_t;
 
+   FileTransferClient(const FileTransferClient&) = delete;
+   FileTransferClient& operator=(const FileTransferClient&) = delete;
+   FileTransferClient(FileTransferClient&&) = delete;
+   FileTransferClient& operator=(FileTransferClient&&) = delete;
+
     FileTransferClient(boost::asio::io_context& rtIoContext,
                        const TcpSocket::resolver::results_type& reEndpoints,
                        std::string const& rsPath);
-    ~FileTransferClient() = default;
+    ~FileTransferClient();
 
     void DoRead();
     void DoWrite(const std::string& raData);
@@ -31,8 +36,8 @@ class FileTransferClient {
     std::array<char, BUF_LEN> maData;
     std::string mtFilePath;
     std::ifstream mtSourceFile;
-   boost::asio::strand<boost::asio::any_io_executor> mtStrand;
-   std::unique_ptr<SessionState<FileTransferClient>> mpState;
+    boost::asio::strand<boost::asio::any_io_executor> mtStrand;
+    std::unique_ptr<SessionState<FileTransferClient>> mpState;
     NetworkSize mdExpectedSize;
 
     void DoConnect(const TcpSocket::resolver::results_type& endpoints);

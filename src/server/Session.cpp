@@ -40,7 +40,6 @@ void Session::DoRead() {
                                 [this, self] (boost::system::error_code ec, std::size_t /*length*/) {
                                 std::cout << "Message size: " << mdExpectedSize <<"\n";
                                 if (!ec && MAX_LENGTH > mdExpectedSize) {
-                                    std::cout << "Reading message\n";
                                     DoReadMessage();
                                 } else {
                                     std::cout << "Read error: " << ec.message() << "\n";
@@ -56,16 +55,12 @@ void Session::DoReadMessage() {
                [this, self](boost::system::error_code ec, std::size_t length) {
                                 if (!ec || length == mdExpectedSize) {
                                     /* deserialize data */
-                                    for(unsigned i = 0; i < mdExpectedSize; i++) {
-                                          std::cout << maData[i];
-                                          }
-                                          std::cout << "\n";
                                     std::string buf(maData, length);
                                     std::cout << "Read: " << buf << "\n";
-                                    if (this->mpState) {
-                                        std::cout << "Start OnRead\n";
+                                    if (this->mpState)
                                         this->mpState->OnRead(*this, buf);
-                                          }
+                                } else if (ec == boost::asio::error::eof) {
+                                    std::cout << "Transition success\n";
                                 } else {
                                     std::cout << "Read len: " << length << "\n";
                                     std::cout << "Read error: " << ec.message() << "\n";
@@ -76,7 +71,7 @@ void Session::DoReadMessage() {
 void Session::DoWrite(const std::string& raData) {
     auto self(shared_from_this());
     uint32_t uMsgSize = raData.size();
-    std::cout << "Write: " << raData << "size: " << uMsgSize << "\n";
+    std::cout << "Write: " << raData << "\n";
     std::vector<boost::asio::const_buffer> aBufs {
         boost::asio::buffer(&uMsgSize, sizeof(uMsgSize)),
         boost::asio::buffer(raData),
@@ -89,7 +84,9 @@ void Session::DoWrite(const std::string& raData) {
             if (ec) {
                 return;
             }
-            DoRead();
+            if (this->mpState) {
+                 this->mpState->OnWrite(*this);
+            }
         }));
 }
 

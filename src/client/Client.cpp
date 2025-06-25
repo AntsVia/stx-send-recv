@@ -21,6 +21,10 @@ FileTransferClient::FileTransferClient(
     DoConnect(reEndpoints);
 }
 
+FileTransferClient::~FileTransferClient() {
+    Close();
+}
+
 void FileTransferClient::DoConnect(
     const TcpSocket::resolver::results_type& endpoints) {
     boost::asio::async_connect(
@@ -45,7 +49,6 @@ void FileTransferClient::DoRead() {
                                 [this] (boost::system::error_code ec, std::size_t /*length*/) {
                                 std::cout << "Message size: " << mdExpectedSize <<"\n";
                                 if (!ec && BUF_LEN > mdExpectedSize) {
-                                    std::cout << "Reading message\n";
                                     DoReadMessage();
                                 } else {
                                     std::cout << "Read error: " << ec.message() << "\n";
@@ -64,6 +67,8 @@ void FileTransferClient::DoReadMessage() {
                                     std::cout << "Read: " << input << "\n";
                                     if (this->mpState)
                                         this->mpState->OnRead(*this, input);
+                                } else if (ec == boost::asio::error::eof) {
+                                    std::cout << "Transition success\n";
                                 } else {
                                     std::cout << "Read len: " << length << "\n";
                                     std::cout << "Read error: " << ec.message() << "\n";
@@ -73,7 +78,7 @@ void FileTransferClient::DoReadMessage() {
 
 void FileTransferClient::DoWrite(const std::string& raData) {
     uint32_t uMsgSize = raData.size();
-    std::cout << "Write: " << raData << "size: " << uMsgSize << "\n";
+    std::cout << "Write: " << raData << "\n";
     std::vector<boost::asio::const_buffer> aBufs {
         boost::asio::buffer(&uMsgSize, sizeof(uMsgSize)),
         boost::asio::buffer(raData),
@@ -86,7 +91,9 @@ void FileTransferClient::DoWrite(const std::string& raData) {
             if (ec) {
                 return;
             }
-            DoRead();
+            if (this->mpState) {
+                 this->mpState->OnWrite(*this);
+            }
         }));
 }
 

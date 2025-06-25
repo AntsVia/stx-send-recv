@@ -19,12 +19,10 @@ Server::Server(short rdPort, std::size_t rdThreadPoolSize,
 
 void Server::Run()
 {
-  // Create a pool of threads to run the io_context.
   std::vector<std::thread> aThreads;
   for (std::size_t i = 0; i < mdThreadPoolSize; ++i)
     aThreads.emplace_back([this]{ mtIoContext.run(); });
 
-  // Wait for all threads in the pool to exit.
   for (std::size_t i = 0; i < aThreads.size(); ++i)
     aThreads[i].join();
 }

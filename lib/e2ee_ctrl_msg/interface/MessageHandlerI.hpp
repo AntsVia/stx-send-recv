@@ -3,16 +3,16 @@
 #include <string>
 
 namespace tools {
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
-}
+}  // namespace tools
 
-template<typename Context>
+template <typename Context>
 struct SessionState {
     virtual ~SessionState() = default;
-    virtual void Start(Context& ctx) = 0; // Begin state logic (e.g., async_read)
+    virtual void Start(Context& ctx) = 0;
     virtual void OnRead(Context& ctx, const std::string& data) = 0;
+    virtual void OnWrite(Context& ctx) = 0;
 };
-
