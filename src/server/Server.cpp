@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include "Session.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
@@ -8,27 +7,27 @@
 #include <thread>
 #include <vector>
 
+#include "Session.hpp"
+
 Server::Server(short rdPort, std::size_t rdThreadPoolSize,
                std::string const& rtWorkDirectory)
-     : mdThreadPoolSize(rdThreadPoolSize),
-       mtAcceptor(mtIoContext, TcpSocket::endpoint(TcpSocket::v4(), rdPort))
-{
+    : mdThreadPoolSize(rdThreadPoolSize),
+      mtAcceptor(mtIoContext, TcpSocket::endpoint(TcpSocket::v4(), rdPort)) {
     CreateWorkDirectory(rtWorkDirectory);
     DoAccept();
 }
 
-void Server::Run()
-{
-  std::vector<std::thread> aThreads;
-  for (std::size_t i = 0; i < mdThreadPoolSize; ++i)
-    aThreads.emplace_back([this]{ mtIoContext.run(); });
+void Server::Run() {
+    std::vector<std::thread> aThreads;
+    for (std::size_t i = 0; i < mdThreadPoolSize; ++i)
+        aThreads.emplace_back([this] { mtIoContext.run(); });
 
-  for (std::size_t i = 0; i < aThreads.size(); ++i)
-    aThreads[i].join();
+    for (std::size_t i = 0; i < aThreads.size(); ++i) aThreads[i].join();
 }
 
 void Server::DoAccept() {
-    mtAcceptor.async_accept(boost::asio::make_strand(mtIoContext),
+    mtAcceptor.async_accept(
+        boost::asio::make_strand(mtIoContext),
         [this](boost::system::error_code ec, TcpSocket::socket socket) {
             if (!ec) {
                 std::make_shared<Session>(std::move(socket))->Start();

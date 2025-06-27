@@ -13,12 +13,7 @@ int main(int argc, char* argv[]) {
         }
 
         boost::asio::io_context io_context;
-
-        tcp::resolver resolver(io_context);
-        tcp::resolver::results_type endpoints =
-            resolver.resolve(argv[1], argv[2]);
-
-        FileTransferClient c(io_context, endpoints, argv[3]);
+        FileTransferClient c(io_context, argv[1], argv[2], argv[3]);
 
         io_context.run();
     } catch (std::exception& e) {

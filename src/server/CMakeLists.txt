@@ -17,4 +17,5 @@ target_link_libraries(stx-server PRIVATE
     Boost::filesystem
     Threads::Threads
     MessageHandler
+    SocketLib
 )

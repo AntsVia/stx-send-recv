@@ -7,15 +7,14 @@
 #include <string>
 
 #include "MessageHandlerI.hpp"
+#include "Socket.hpp"
 
 class Session : public std::enable_shared_from_this<Session> {
    public:
     using TcpSocket = boost::asio::ip::tcp;
     using NetworkSize = uint32_t;
 
-    Session(TcpSocket::socket rtSocket)
-        : mtSocket(std::move(rtSocket)),
-          mtStrand(boost::asio::make_strand(mtSocket.get_executor())) {}
+    Session(TcpSocket::socket rtSocket) : mSocket(std::move(rtSocket)) {}
     ~Session() = default;
 
     void Start();
@@ -25,19 +24,15 @@ class Session : public std::enable_shared_from_this<Session> {
     void Close();
 
    private:
-    static constexpr size_t MAX_LENGTH = 65 * 1024;
+    static constexpr size_t BUF_LEN = 65 * 1024;
     unsigned int mdCounter = 0;
-    TcpSocket::socket mtSocket;
-    char maData[MAX_LENGTH];
+    Socket mSocket;
+    std::array<char, BUF_LEN> maData;
     size_t mdFileSize;
-    NetworkSize mdExpectedSize;
     std::string mtFileName;
     std::ofstream mtOutputFile;
     std::unique_ptr<SessionState<Session>> mpState;
-    boost::asio::streambuf mtDataInput;
-    boost::asio::strand<boost::asio::any_io_executor> mtStrand;
 
-    void DoReadFileData();
-    void DoReadMessage();
-    void CreateFile();
+    // void DoReadFileData();
+    // void CreateFile();
 };
